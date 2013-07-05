@@ -20,6 +20,7 @@
 package org.wikimedia.analytics.varnishkafka;
 
 import org.apache.avro.Schema;
+import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
@@ -141,6 +142,7 @@ public class Cli {
         if (args.length == 3) {
             cli.compress = args[2].equals("true");
             if (cli.compress) {
+                log.info("Snappy compression is enabled.");
                 cli.setFormat(args[1] + ".snappy");
             } else {
                 cli.setFormat(args[1]);
@@ -152,12 +154,12 @@ public class Cli {
     }
 
     public void runSuiteBenchmark() {
-        String[] formats = {"tsv", "avro", "protobufs", "json", "json.snappy"};
+        String[] formats = {"tsv", "avro", "protobufs", "json", "json.snappy", "avro.snappy", "protobufs.snappy"};
         Results result = null;
         for (String format : formats) {
             setFormat(format);
 
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 11; i++) {
                 runBenchmark();
                 determineFileSize();
                 result = new Results();
@@ -165,12 +167,15 @@ public class Cli {
                 result.setFileSize(getFileSize());
                 result.setLinesPerSec(getLinesPerSec());
                 result.setTimeElapsed(getTimeElapsed());
-                if ("json.snappy".equals(format)) {
+                if (format.contains("snappy")) {
                     result.setCompressed(true);
                 } else {
                     result.setCompressed(false);
                 }
-                results.put(format, result);
+                if (i > 0) {
+                    //discard the first observation for any jvm warmup issues.
+                    results.put(format, result);
+                }
             }
         }
         printResults();
@@ -194,14 +199,14 @@ public class Cli {
 
     private void runBenchmark() {
         int n = 0;
+        if (format.contains("snappy")) {
+            compress = true;
+        }
         if (format.contains("json")) {
-            if (format.contains("snappy")) {
-                compress = true;
-            }
             n = writeJsonOutput();
-        }  else if ("protobufs".equals(format)) {
+        }  else if (format.contains("protobufs")) {
             n = writeProtobufOutput();
-        } else if ("avro".equals(format)) {
+        } else if (format.contains("avro")) {
             n = writeAvroOutput();
         } else if ("tsv".equals(format)) {
             n = writeEscapedOutput();
@@ -285,10 +290,7 @@ public class Cli {
             BufferedOutputStream bos = new BufferedOutputStream(out);
 
             if (compress) {
-                log.info("Snappy compression is enabled.");
-
-                out = new FileOutputStream(outputFile);
-                snappyOutputStream = new SnappyOutputStream(out);
+                snappyOutputStream = new SnappyOutputStream(bos);
                 jGenerator = jfactory.createJsonGenerator(snappyOutputStream, JsonEncoding.UTF8);
             } else {
                 jGenerator = jfactory.createJsonGenerator(bos, JsonEncoding.UTF8);
@@ -331,6 +333,7 @@ public class Cli {
                 setEnd(System.nanoTime());
             } finally {
                 it.close();
+                jGenerator.flush();
                 jGenerator.close();
                 if (compress)  {
                     snappyOutputStream.close();
@@ -354,8 +357,15 @@ public class Cli {
         try {
             LineIterator it = FileUtils.lineIterator(inputFile, "UTF-8");
             File outputFile = new File(cwd.getPath(), "test." + getFormat());
+            outputFile.delete();
             OutputStream out = new FileOutputStream(outputFile);
             BufferedOutputStream bos = new BufferedOutputStream(out);
+            SnappyOutputStream snappyOutputStream = null;
+
+            if (compress) {
+                 snappyOutputStream = new SnappyOutputStream(bos);
+            }
+
             log.info("Output file path: " + outputFile.toString());
             try {
                 setStart(System.nanoTime());
@@ -383,11 +393,17 @@ public class Cli {
                             .setXAnalytics(fields[16])
                             .build();
 
-                    bos.write(logline.toByteArray());
+                    if (compress) {
+                        snappyOutputStream.write(logline.toByteArray());
+                    } else {
+                        bos.write(logline.toByteArray());
+                    }
                 }
                 setEnd(System.nanoTime());
             } finally {
                 try {
+                    bos.flush();
+                    out.flush();
                     out.close();
                     bos.close();
                 } catch (IOException e) {
@@ -418,6 +434,11 @@ public class Cli {
                     schema);
             DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<GenericRecord>(
                     writer);
+
+            if (compress) {
+                dataFileWriter.setCodec(CodecFactory.snappyCodec());
+            }
+
             dataFileWriter.create(schema, file);
 
             try {
@@ -454,6 +475,7 @@ public class Cli {
 
                     setEnd(System.nanoTime());
                 } finally {
+                    dataFileWriter.flush();
                     dataFileWriter.close();
                 }
             } catch (IOException ex) {
