@@ -1,0 +1,27 @@
+{
+    "name"      : "WebRequest",
+    "namespace" : "org.wikimedia.analytics.kraken",
+    "doc"       : "Represents a logline from a web/cache server.",
+    "type"      : "record",
+
+    "fields": [
+
+        { "name": "kafka_offset", "type": "long"} ,
+        { "name": "host", "type": "string", "order": "ignore" },
+        { "name": "seq_num", "type": "long"} ,
+        { "name": "timestamp", "type": "string"} ,
+        { "name": "response", "type": "float", "order": "ignore" },
+        { "name": "ip", "type": "string" },
+        { "name": "http_status", "type": "string", "order": "ignore" },
+        { "name": "bytes_sent", "type": "int", "order": "ignore" },
+        { "name": "request_method", "type": "string" },
+        { "name": "uri", "type": "string" },
+        { "name": "proxy_host", "type": "string" },
+        { "name": "mime_type", "type": "string" },
+        { "name": "referer", "type": ["null", "string"], "default":null, "order": "ignore" },
+        { "name": "x_forwarded_for", "type": "string" },
+        { "name": "user_agent", "type": "string", "order": "ignore" },
+        { "name": "accept_language", "type": "string", "order": "ignore" },
+        { "name": "x_analytics", "type": "string" }
+    ]
+}

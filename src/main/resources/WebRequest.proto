@@ -1,0 +1,22 @@
+package org.wikimedia.analytics.varnishkafka;
+
+message LogLine {
+    required int64 kafka_offset = 1;
+    required string host = 2;
+    required int64 seq_num  = 3;
+    required string timestamp = 4;
+    required float response = 5;
+    required string ip = 6;
+    required string http_status = 7;
+    required int32 bytes_sent = 8;
+    required string request_method = 9;
+    required string uri = 10;
+    required string proxy_host = 11;
+    required string mime_type = 12;
+    required string referer = 13;
+    required string x_forwarded_for = 14;
+    required string user_agent = 15;
+    required string accept_language = 16;
+    required string x_analytics = 17;
+
+}
