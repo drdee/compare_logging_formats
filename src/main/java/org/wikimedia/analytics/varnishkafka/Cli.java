@@ -178,13 +178,13 @@ public class Cli {
 
     private void printResults() {
         Iterator it = results.entrySet().iterator();
-        System.out.println("Format \t Filesize \t Avg. Time \t Lines/Sec \t Compressed");
+        System.out.println("Format \t Filesize (Mb) \t Avg. Time \t Lines/Sec \t Compressed");
         while (it.hasNext()) {
             Map.Entry pairs = (Map.Entry) it.next();
             Results result =  (Results) pairs.getValue();
 
             System.out.print(result.getFormat() + "\t");
-            System.out.print(result.getFileSize() / (1024 * 1024) + "Mb\t");
+            System.out.print(result.getFileSize() / (1024 * 1024) + "\t");
             System.out.print(result.getAverageTimeElapsed() + "\t");
             System.out.print(result.getLinesPerSec() + "\t");
             System.out.print(result.isCompressed());
@@ -408,9 +408,7 @@ public class Cli {
 
         try {
             InputStream inputStream = ClassLoader.getSystemClassLoader().getResourceAsStream("WebRequest.avro.json");
-                    //Cli.class.getResourceAsStream("/");
             schema = new Schema.Parser().parse(inputStream);
-            //schema = Schema.parse(inputStream);
             inputStream.close();
 
             File file = new File(cwd.getPath(), "test." + getFormat());
