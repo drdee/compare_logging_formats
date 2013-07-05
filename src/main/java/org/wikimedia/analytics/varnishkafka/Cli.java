@@ -407,7 +407,7 @@ public class Cli {
         int n = 0;
 
         try {
-            InputStream inputStream = ClassLoader.getSystemClassLoader().getResourceAsStream("Webrequest.avro.json");
+            InputStream inputStream = ClassLoader.getSystemClassLoader().getResourceAsStream("WebRequest.avro.json");
                     //Cli.class.getResourceAsStream("/");
             schema = new Schema.Parser().parse(inputStream);
             //schema = Schema.parse(inputStream);
